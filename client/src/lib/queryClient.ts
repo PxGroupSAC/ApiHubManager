@@ -10,11 +10,24 @@ async function throwIfResNotOk(res: Response) {
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown | undefined,
+  data?: unknown
 ): Promise<Response> {
+  // Si la url ya es absoluta (http...), no modificarla
+  // Si es relativa (ej: /apis), dejar que el proxy de Vite la maneje
+  // (Eliminamos el reemplazo anterior de /apis)
+
+  const adminKey = localStorage.getItem("x-admin-key");
+  const clientKey = localStorage.getItem("x-api-key");
+
+  const headers: Record<string, string> = {
+    ...(data ? { "Content-Type": "application/json" } : {}),
+    ...(adminKey ? { "x-admin-key": adminKey } : {}),
+    ...(clientKey ? { "x-api-key": clientKey } : {}),
+  };
+
   const res = await fetch(url, {
     method,
-    headers: data ? { "Content-Type": "application/json" } : {},
+    headers,
     body: data ? JSON.stringify(data) : undefined,
     credentials: "include",
   });
@@ -22,6 +35,7 @@ export async function apiRequest(
   await throwIfResNotOk(res);
   return res;
 }
+
 
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {

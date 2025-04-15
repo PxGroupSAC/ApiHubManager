@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -11,99 +11,92 @@ interface StatsFiltersProps {
     fromDate: Date;
     toDate: Date;
     interval: string;
+    clientId: string;
   }) => void;
+  clients?: { id: string; name: string }[];
 }
 
-export default function StatsFilters({ onApplyFilters }: StatsFiltersProps) {
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("24h");
-  const [fromDate, setFromDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [toDate, setToDate] = useState<string>(new Date().toISOString().split('T')[0]);
-  const [interval, setInterval] = useState<string>("hour");
-  
-  const handlePeriodSelect = (period: string) => {
-    setSelectedPeriod(period);
-    
-    const { fromDate: from, toDate: to } = getDateRange(period);
-    setFromDate(from.toISOString().split('T')[0]);
-    setToDate(to.toISOString().split('T')[0]);
-  };
-  
+export default function StatsFilters({ onApplyFilters, clients = [] }: StatsFiltersProps) {
+  const [selectedPeriod, setSelectedPeriod] = useState("24h");
+  const [fromDate, setFromDate] = useState(new Date().toISOString().split("T")[0]);
+  const [toDate, setToDate] = useState(new Date().toISOString().split("T")[0]);
+  const [interval, setInterval] = useState("hour");
+  const [clientId, setClientId] = useState("");
+
+  useEffect(() => {
+    if (clients.length > 0) {
+      setClientId(clients[0].id);
+    }
+  }, [clients]);
+
   const handleApply = () => {
     onApplyFilters({
       fromDate: new Date(fromDate),
       toDate: new Date(toDate),
-      interval
+      interval,
+      clientId,
     });
   };
-  
+
   return (
-    <Card className="mb-6">
-      <CardContent className="p-4">
-        <div className="flex flex-col md:flex-row md:items-center space-y-4 md:space-y-0 md:space-x-4">
-          <div>
-            <span className="text-sm text-muted-foreground mr-2">Show last:</span>
-            <div className="inline-flex mt-1">
-              {TIME_PERIODS.map((period, index) => (
-                <Button
-                  key={period.value}
-                  variant={selectedPeriod === period.value ? "default" : "outline"}
-                  className={`text-xs h-8 px-2 ${
-                    index === 0 
-                      ? "rounded-l-md rounded-r-none" 
-                      : index === TIME_PERIODS.length - 1 
-                        ? "rounded-r-md rounded-l-none" 
-                        : "rounded-none"
-                  }`}
-                  onClick={() => handlePeriodSelect(period.value)}
-                >
-                  {period.label}
-                </Button>
+    <Card className="mb-4">
+      <CardContent className="grid grid-cols-1 md:grid-cols-4 gap-4 p-4">
+        <div>
+          <Label>Periodo</Label>
+          <Select value={selectedPeriod} onValueChange={(period) => {
+            setSelectedPeriod(period);
+            const { fromDate, toDate } = getDateRange(period);
+            setFromDate(fromDate);
+            setToDate(toDate);
+          }}>
+            <SelectTrigger>
+              <SelectValue placeholder="Periodo" />
+            </SelectTrigger>
+            <SelectContent>
+              {TIME_PERIODS.map((p) => (
+                <SelectItem key={p.value} value={p.value}>{p.label}</SelectItem>
               ))}
-            </div>
-          </div>
-          
-          <div className="flex-1 grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <Label className="text-sm text-muted-foreground">From:</Label>
-              <Input 
-                type="date" 
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-            <div>
-              <Label className="text-sm text-muted-foreground">To:</Label>
-              <Input 
-                type="date" 
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-                className="mt-1"
-              />
-            </div>
-          </div>
-          
-          <div className="flex items-center">
-            <span className="text-sm text-muted-foreground mr-2">per</span>
-            <Select value={interval} onValueChange={setInterval}>
-              <SelectTrigger className="w-28">
-                <SelectValue placeholder="Interval" />
-              </SelectTrigger>
-              <SelectContent>
-                {INTERVAL_OPTIONS.map(option => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div>
-            <Button onClick={handleApply}>
-              Apply
-            </Button>
-          </div>
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Desde</Label>
+          <Input type="date" value={fromDate} onChange={(e) => setFromDate(e.target.value)} />
+        </div>
+        <div>
+          <Label>Hasta</Label>
+          <Input type="date" value={toDate} onChange={(e) => setToDate(e.target.value)} />
+        </div>
+        <div>
+          <Label>Cliente</Label>
+          <Select value={clientId} onValueChange={setClientId}>
+            <SelectTrigger>
+              <SelectValue placeholder="Selecciona cliente" />
+            </SelectTrigger>
+            <SelectContent>
+              {clients.map((client) => (
+                <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div>
+          <Label>Intervalo</Label>
+          <Select value={interval} onValueChange={setInterval}>
+            <SelectTrigger>
+              <SelectValue placeholder="Intervalo" />
+            </SelectTrigger>
+            <SelectContent>
+              {INTERVAL_OPTIONS.map((intv) => (
+                <SelectItem key={intv.value} value={intv.value}>{intv.label}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <div className="col-span-full">
+          <Button onClick={handleApply} className="w-full mt-2">
+            Aplicar Filtros
+          </Button>
         </div>
       </CardContent>
     </Card>

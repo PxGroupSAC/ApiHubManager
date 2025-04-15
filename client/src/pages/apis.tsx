@@ -12,6 +12,16 @@ import ApiServiceCard from "@/components/api-service-card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { apiRequest } from "@/lib/queryClient";
 
+// Hook para detectar el modo de autenticación
+function useAuthMode() {
+  if (typeof window === 'undefined') return 'sin clave';
+  const adminKey = localStorage.getItem("x-admin-key");
+  const clientKey = localStorage.getItem("x-api-key");
+  if (adminKey) return "admin";
+  if (clientKey) return "cliente";
+  return "sin clave";
+}
+
 export default function ApiServices() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -112,6 +122,32 @@ export default function ApiServices() {
   const availableApiTypes = apiTypes || [];
   const primaryApplication = applications && applications.length > 0 ? applications[0] : null;
   
+  // Adaptador para APIs reales del backend
+  const { data: apis = [] } = useQuery({
+    queryKey: ["apis"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "http://127.0.0.1:8000/apis");
+      const raw = await res.json();
+      return (raw as any[]).map((api: any, i: number) => ({
+        id: i,
+        applicationId: 0,
+        apiType: {
+          id: i,
+          name: api.name,
+          description: api.base_url,
+          methods: api.allowed_methods
+        },
+        apiKey: "",
+        isActive: api.enabled
+      }));
+    }
+  });
+
+  console.log("📦 APIs cargadas:", apis);
+  
+  // Detectar modo de autenticación
+  const authMode = useAuthMode();
+
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
@@ -125,48 +161,35 @@ export default function ApiServices() {
         <div className="text-center py-12">
           <p className="text-muted-foreground">Loading API services...</p>
         </div>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {/* Display API service cards for the primary app */}
-          {availableApiTypes.map(apiType => {
-            // Find the API key for this API type in the primary application
-            const apiKeys = primaryApplication && appApiKeys 
-              ? appApiKeys.get(primaryApplication.id) || [] 
-              : [];
-            
-            const apiKey = apiKeys.find(key => key.apiType?.id === apiType.id);
-            
-            return (
-              <ApiServiceCard
-                key={apiType.id}
-                id={apiKey?.id}
-                applicationId={primaryApplication?.id || 0}
-                apiType={apiType}
-                apiKey={apiKey?.key}
-                isActive={apiKey?.isActive ?? false}
-              />
-            );
-          })}
-          
-          {/* Add New API Service Card */}
-          <div 
-            className="bg-card rounded-lg shadow-sm overflow-hidden border border-dashed border-border flex items-center justify-center p-12 cursor-pointer"
-            onClick={() => setIsAddingApi(true)}
-          >
-            <div className="text-center">
-              <div className="h-12 w-12 rounded-full bg-primary/10 text-primary flex items-center justify-center mx-auto mb-4">
-                <Plus className="h-6 w-6" />
-              </div>
-              <h3 className="text-foreground font-medium mb-1">Enable New API</h3>
-              <p className="text-muted-foreground text-sm mb-4">Add another API service to your account</p>
-              <Button>
-                Add API Service
-              </Button>
-            </div>
-          </div>
+      ) : null}
+      {/* Indicador de modo de autenticación */}
+      <div className="mb-4">
+        <span className={`inline-block px-3 py-1 rounded text-white text-xs ${authMode === "admin" ? "bg-green-600" : authMode === "cliente" ? "bg-blue-600" : "bg-gray-400"}`}>
+          {authMode === "admin" && "🔑 Modo Admin"}
+          {authMode === "cliente" && "🔒 Modo Cliente"}
+          {authMode === "sin clave" && "⚠️ Sin clave de autenticación"}
+        </span>
+      </div>
+      {/* Sección de APIs reales del backend */}
+      <div className="mb-12">
+        <h2 className="text-xl font-semibold mb-4">APIs reales del backend</h2>
+        <div className="border border-red-500 p-4 mb-4">
+          {apis.length > 0 ? "✅ APIs cargadas" : "❌ No APIs"}
         </div>
-      )}
-      
+        {apis.length === 0 ? (
+          <div className="text-muted-foreground italic">
+            No se encontraron APIs. Verifica que el backend responda correctamente a <code>/apis</code> y que hayas guardado la clave <code>x-admin-key</code> en <code>localStorage</code>.
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {apis.map((api: any) => {
+              console.log("🔍 API desde backend:", api);
+              return <ApiServiceCard key={api.id} {...api} />;
+            })}
+          </div>
+        )}
+      </div>
+
       {/* Add API Dialog */}
       <Dialog open={isAddingApi} onOpenChange={setIsAddingApi}>
         <DialogContent>
@@ -181,7 +204,7 @@ export default function ApiServices() {
                   <SelectValue placeholder="Select application" />
                 </SelectTrigger>
                 <SelectContent>
-                  {applications && applications.map(app => (
+                  {applications && applications.map((app: any) => (
                     <SelectItem key={app.id} value={app.id.toString()}>
                       {app.name}
                     </SelectItem>
@@ -196,7 +219,7 @@ export default function ApiServices() {
                   <SelectValue placeholder="Select API service" />
                 </SelectTrigger>
                 <SelectContent>
-                  {apiTypes && apiTypes.map(type => (
+                  {apiTypes && apiTypes.map((type: any) => (
                     <SelectItem key={type.id} value={type.id.toString()}>
                       {type.name}
                     </SelectItem>

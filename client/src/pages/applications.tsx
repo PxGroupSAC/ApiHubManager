@@ -22,6 +22,7 @@ export default function Applications() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [clients, setClients] = useState<any[]>([]);
   
   // Fetch all applications for the current user
   const { data: applications, isLoading } = useQuery({
@@ -31,6 +32,16 @@ export default function Applications() {
       if (!res.ok) throw new Error("Failed to fetch applications");
       return res.json();
     }
+  });
+  
+  // Fetch clients
+  const { data: clientsData, isLoading: isLoadingClients } = useQuery({
+    queryKey: ["clients"],
+    queryFn: async () => {
+      const res = await apiRequest("GET", "http://127.0.0.1:8000/clients/all");
+      return res.json();
+    },
+    onSuccess: setClients,
   });
   
   // Create application mutation
@@ -123,6 +134,55 @@ export default function Applications() {
                       key={app.id} 
                       application={app} 
                       onView={handleViewApplication}
+                    />
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+      
+      {/* Tabla de Clients reales */}
+      <Card className="mt-8">
+        <CardContent className="p-0">
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead>Environment</TableHead>
+                  <TableHead>Allowed APIs</TableHead>
+                  <TableHead>Created At</TableHead>
+                  <TableHead>Actions</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {isLoadingClients ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4">
+                      Loading clients...
+                    </TableCell>
+                  </TableRow>
+                ) : !clients || clients.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-4">
+                      No clients found.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  clients.map((client) => (
+                    <ApplicationRow 
+                      key={client.id} 
+                      application={{
+                        id: client.id,
+                        name: client.name,
+                        description: client.environment,
+                        appId: client.id,
+                        createdAt: client.created_at,
+                        // Adaptar según lo que ApplicationRow espera
+                      }} 
+                      onView={() => {}}
                     />
                   ))
                 )}
