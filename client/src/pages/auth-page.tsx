@@ -1,4 +1,4 @@
-import { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { z } from "zod";
 import { useAuth } from "@/hooks/use-auth";
@@ -44,9 +44,14 @@ export default function AuthPage() {
   const [_, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   
-  // Redirect if already logged in
+  // Redirect if already logged in - using useEffect for navigation
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
+  
   if (user) {
-    setLocation("/");
     return null;
   }
   
