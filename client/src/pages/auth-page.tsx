@@ -51,10 +51,12 @@ export default function AuthPage() {
     }
   }, [user, setLocation]);
   
+  // If user is authenticated, return null (don't render the auth page)
   if (user) {
     return null;
   }
   
+  // Login form setup
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -63,6 +65,7 @@ export default function AuthPage() {
     },
   });
   
+  // Register form setup
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -72,6 +75,7 @@ export default function AuthPage() {
     },
   });
   
+  // Form submission handlers
   const onLoginSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(data);
   };
