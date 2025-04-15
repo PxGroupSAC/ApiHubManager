@@ -10,21 +10,33 @@ import ApiServices from "./pages/apis";
 import Statistics from "./pages/statistics";
 import Account from "./pages/account";
 import NotFound from "./pages/not-found";
+import AuthPage from "./pages/auth-page";
+import { AuthProvider } from "./hooks/use-auth";
+import { ProtectedRoute } from "./lib/protected-route";
+
+function Router() {
+  return (
+    <Switch>
+      <ProtectedRoute path="/" component={Dashboard} />
+      <ProtectedRoute path="/applications" component={Applications} />
+      <ProtectedRoute path="/apis" component={ApiServices} />
+      <ProtectedRoute path="/statistics" component={Statistics} />
+      <ProtectedRoute path="/account" component={Account} />
+      <Route path="/auth" component={AuthPage} />
+      <Route component={NotFound} />
+    </Switch>
+  );
+}
 
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Layout>
-        <Switch>
-          <Route path="/" component={Dashboard} />
-          <Route path="/applications" component={Applications} />
-          <Route path="/apis" component={ApiServices} />
-          <Route path="/statistics" component={Statistics} />
-          <Route path="/account" component={Account} />
-          <Route component={NotFound} />
-        </Switch>
-      </Layout>
-      <Toaster />
+      <AuthProvider>
+        <Layout>
+          <Router />
+        </Layout>
+        <Toaster />
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

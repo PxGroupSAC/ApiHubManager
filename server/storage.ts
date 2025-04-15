@@ -7,6 +7,8 @@ import {
   apiKeys, ApiKey, InsertApiKey,
   usageStats, UsageStat, InsertUsageStat
 } from "@shared/schema";
+import createMemoryStore from "memorystore";
+import session from "express-session";
 
 export interface IStorage {
   // User operations
@@ -43,6 +45,9 @@ export interface IStorage {
   getUsageStats(apiKeyId: number, fromDate: Date, toDate: Date): Promise<UsageStat[]>;
   getMethodStats(fromDate: Date, toDate: Date): Promise<{method: string, from: Date, to: Date, traffic: number}[]>;
   recordUsage(apiKeyId: number, method: string): Promise<UsageStat>;
+  
+  // Session store for authentication
+  sessionStore: any;
 }
 
 export class MemStorage implements IStorage {
@@ -60,6 +65,8 @@ export class MemStorage implements IStorage {
   private apiKeyId: number = 1;
   private usageStatId: number = 1;
   
+  public sessionStore: any;
+  
   constructor() {
     this.users = new Map();
     this.teamMembers = new Map();
@@ -67,6 +74,12 @@ export class MemStorage implements IStorage {
     this.applications = new Map();
     this.apiKeys = new Map();
     this.usageStats = new Map();
+    
+    // Initialize memory store for sessions
+    const MemoryStore = createMemoryStore(session);
+    this.sessionStore = new MemoryStore({
+      checkPeriod: 86400000 // 24 hours
+    });
     
     // Initialize with some default data
     this.initializeDefaultData();
@@ -78,7 +91,7 @@ export class MemStorage implements IStorage {
       id: this.userId++,
       username: 'Felipe Lathrop',
       email: 'fiajero-group.com',
-      password: 'password123'
+      password: 'cbd0f4468a2ec00cd99b5e454ce9b0821fe69d3eb15a13290b7b5ba73c3cd6af.a9f2302c3a9c0cbca8590e29ae29c3f1' // pre-hashed 'password123'
     };
     this.users.set(user.id, user);
     

@@ -1,16 +1,20 @@
 import { useState } from "react";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
-import { Code, LayoutDashboard, TerminalSquare, BarChart3, User, LogOut } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
+import { Code, LayoutDashboard, TerminalSquare, BarChart3, User, LogOut, Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/use-auth";
 
 export default function Sidebar() {
   const [location, setLocation] = useLocation();
   const [expanded, setExpanded] = useState<boolean>(false);
+  const { logoutMutation } = useAuth();
+  const { toast } = useToast();
   
   const navigation = [
     { name: "Dashboard", href: "/", icon: LayoutDashboard },
     { name: "Applications", href: "/applications", icon: Code },
+    { name: "API Services", href: "/apis", icon: TerminalSquare },
     { name: "Statistics", href: "/statistics", icon: BarChart3 },
     { name: "My Account", href: "/account", icon: User },
   ];
@@ -25,9 +29,17 @@ export default function Sidebar() {
     setExpanded(!expanded);
   };
   
-  const handleLogout = () => {
-    // Handle logout logic here
-    console.log("Logging out...");
+  const handleLogout = async () => {
+    try {
+      await logoutMutation.mutateAsync();
+      // Redirect to login page is handled by the protected route
+    } catch (error) {
+      toast({
+        title: "Logout failed",
+        description: "Something went wrong while logging out.",
+        variant: "destructive",
+      });
+    }
   };
   
   return (
@@ -76,9 +88,14 @@ export default function Sidebar() {
               variant="ghost" 
               className="w-full justify-start"
               onClick={handleLogout}
+              disabled={logoutMutation.isPending}
             >
-              <LogOut className="mr-2 h-5 w-5" />
-              Logout
+              {logoutMutation.isPending ? (
+                <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              ) : (
+                <LogOut className="mr-2 h-5 w-5" />
+              )}
+              {logoutMutation.isPending ? "Logging out..." : "Logout"}
             </Button>
           </div>
         </div>

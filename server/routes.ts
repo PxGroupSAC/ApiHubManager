@@ -9,8 +9,11 @@ import {
   insertTeamMemberSchema,
   insertUserSchema
 } from "@shared/schema";
+import { setupAuth } from "./auth";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Set up authentication
+  setupAuth(app);
   // Users routes
   app.get('/api/users/:id', async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
