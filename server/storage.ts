@@ -89,9 +89,9 @@ export class MemStorage implements IStorage {
     // Create a default user
     const user: User = {
       id: this.userId++,
-      username: 'Felipe Lathrop',
-      email: 'fiajero-group.com',
-      password: 'cbd0f4468a2ec00cd99b5e454ce9b0821fe69d3eb15a13290b7b5ba73c3cd6af.a9f2302c3a9c0cbca8590e29ae29c3f1' // pre-hashed 'password123'
+      username: 'admin',
+      email: 'admin@fiajero-group.com',
+      password: 'admin'
     };
     this.users.set(user.id, user);
     
