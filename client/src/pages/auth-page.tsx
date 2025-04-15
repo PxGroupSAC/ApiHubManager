@@ -44,19 +44,7 @@ export default function AuthPage() {
   const [_, setLocation] = useLocation();
   const { user, loginMutation, registerMutation } = useAuth();
   
-  // Redirect if already logged in - using useEffect for navigation
-  useEffect(() => {
-    if (user) {
-      setLocation("/");
-    }
-  }, [user, setLocation]);
-  
-  // If user is authenticated, return null (don't render the auth page)
-  if (user) {
-    return null;
-  }
-  
-  // Login form setup
+  // Login form setup - IMPORTANTE: debe estar antes del retorno condicional
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
@@ -65,7 +53,7 @@ export default function AuthPage() {
     },
   });
   
-  // Register form setup
+  // Register form setup - IMPORTANTE: debe estar antes del retorno condicional
   const registerForm = useForm<RegisterFormValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -75,6 +63,13 @@ export default function AuthPage() {
     },
   });
   
+  // Redirect if already logged in - using useEffect for navigation
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
+  
   // Form submission handlers
   const onLoginSubmit = (data: LoginFormValues) => {
     loginMutation.mutate(data);
@@ -83,6 +78,12 @@ export default function AuthPage() {
   const onRegisterSubmit = (data: RegisterFormValues) => {
     registerMutation.mutate(data);
   };
+  
+  // If user is authenticated, return null (don't render the auth page)
+  // IMPORTANTE: Todas las llamadas a hooks deben estar antes de este return
+  if (user) {
+    return null;
+  }
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 dark:from-gray-900 dark:to-gray-800 flex flex-col md:flex-row">
