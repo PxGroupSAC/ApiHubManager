@@ -3,6 +3,10 @@ import { FileText, Zap, Building } from "lucide-react";
 import { CURRENT_USER_ID } from "@/lib/data";
 import CredentialsCard from "@/components/credentials-card";
 import QuickLink from "@/components/quick-link";
+import ClientInfoCard from "@/components/ClientInfoCard";
+import { useEffect, useState } from "react";
+import { apiRequest } from "@/lib/queryClient";
+import ClientLogin from "@/components/ClientLogin";
 
 export default function Dashboard() {
   // Fetch user's primary application and API key
@@ -19,7 +23,7 @@ export default function Dashboard() {
   
   // Fetch API keys for the primary application
   const { data: apiKeys, isLoading: isLoadingKeys } = useQuery({
-    queryKey: primaryApp ? [`/api/applications/${primaryApp.id}/api-keys`] : null,
+    queryKey: primaryApp ? [`/api/applications/${primaryApp.id}/api-keys`] : [],
     queryFn: async () => {
       const res = await fetch(`/api/applications/${primaryApp.id}/api-keys`);
       if (!res.ok) throw new Error("Failed to fetch API keys");
@@ -29,7 +33,16 @@ export default function Dashboard() {
   });
   
   const primaryKey = apiKeys && apiKeys.length > 0 ? apiKeys[0].key : "";
-  
+
+  // Fetch client info (cliente autenticado)
+  const [client, setClient] = useState(null);
+  useEffect(() => {
+    apiRequest("GET", "/clients/me")
+      .then(res => res.json())
+      .then(setClient)
+      .catch(() => {});
+  }, []);
+
   const handleReadDocs = () => {
     // Open documentation in a new tab
     window.open("https://api-docs.example.com", "_blank");
@@ -47,6 +60,8 @@ export default function Dashboard() {
   
   return (
     <div>
+      <ClientLogin />
+      {client && <ClientInfoCard client={client} />}
       <div className="flex justify-between items-center mb-6">
         <div>
           <h1 className="text-2xl font-semibold">Dashboard</h1>

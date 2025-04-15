@@ -16,13 +16,11 @@ export async function apiRequest(
   // Si es relativa (ej: /apis), dejar que el proxy de Vite la maneje
   // (Eliminamos el reemplazo anterior de /apis)
 
-  const adminKey = localStorage.getItem("x-admin-key");
-  const clientKey = localStorage.getItem("x-api-key");
+  const clientId = localStorage.getItem("x-client-id");
 
   const headers: Record<string, string> = {
     ...(data ? { "Content-Type": "application/json" } : {}),
-    ...(adminKey ? { "x-admin-key": adminKey } : {}),
-    ...(clientKey ? { "x-api-key": clientKey } : {}),
+    ...(clientId ? { "x-client-id": clientId } : {}),
   };
 
   const res = await fetch(url, {
@@ -32,7 +30,7 @@ export async function apiRequest(
     credentials: "include",
   });
 
-  await throwIfResNotOk(res);
+  if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
   return res;
 }
 
