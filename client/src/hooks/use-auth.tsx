@@ -8,21 +8,20 @@ import {
 import { InsertUser } from "@shared/schema";
 import { apiRequest } from "../lib/api-request";
 import { useToast } from "@/hooks/use-toast";
-import { toast } from "@/components/ui/use-toast";
 import React from "react";
 
 // Tipo para la respuesta del login
 interface ClientResponse {
-  client_id: string;
+  id: string;
   name: string;
   allowed_apis: string[];
-  plan: string;
+  plan?: string;
   environment: string;
   request_limit_per_day: number;
   created_at: string;
-  email: string;
-  is_active: boolean;
-  updated_at: string | null;
+  email?: string;
+  is_active?: boolean;
+  updated_at?: string | null;
 }
 
 interface LoginData {
@@ -81,24 +80,75 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const loginMutation = useMutation<LoginResponse, Error, LoginData>({
     mutationFn: async (credentials: LoginData) => {
-      // Login request
-      const loginRes = await apiRequest("/login", {
-        method: "POST",
-        body: JSON.stringify(credentials)
-      });
-      const loginData = await loginRes.json();
-      
-      // Guardar el client_id
-      localStorage.setItem("x-client-id", loginData.client_id);
-      
-      // Retornar los datos del login
-      return {
-        access_token: loginData.client_id,
-        token_type: 'bearer',
-        client: loginData
-      };
+      try {
+        // 1. Login request
+        const loginRes = await apiRequest("/login", {
+          method: "POST",
+          body: JSON.stringify(credentials)
+        });
+        
+        console.log('=== LOGIN RESPONSE ===');
+        const loginData = await loginRes.json();
+        console.log('Login data:', loginData);
+        
+        // 2. Validar y guardar el client_id
+        if (!loginData.client_id) {
+          console.error('Login response missing client_id:', loginData);
+          throw new Error("No se recibió el client_id en la respuesta del login");
+        }
+        
+        localStorage.setItem("x-client-id", loginData.client_id);
+        console.log('client_id guardado:', loginData.client_id);
+        
+        // 3. Obtener datos completos del cliente
+        console.log('Obteniendo datos del cliente...');
+        const clientRes = await apiRequest("/clients/me");
+        
+        console.log('=== CLIENT RESPONSE ===');
+        const clientData = await clientRes.json();
+        console.log('Client data:', clientData);
+        
+        // 4. Verificar que la respuesta no sea vacía
+        if (!clientData || !clientData.id) {
+          console.error('Client response invalid:', clientData);
+          throw new Error("No se pudieron obtener los datos completos del cliente");
+        }
+        
+        // 5. Guardar datos completos en localStorage
+        localStorage.setItem("client-info", JSON.stringify(clientData));
+        console.log('Datos del cliente guardados en localStorage');
+        
+        // 6. Retornar respuesta completa
+        const response = {
+          access_token: loginData.client_id,
+          token_type: 'bearer',
+          client: {
+            ...clientData,
+            client_id: clientData.id
+          }
+        };
+        console.log('Respuesta final:', response);
+        return response;
+        
+      } catch (error) {
+        console.error('Error en el proceso de login:', error);
+        // Limpiar localStorage en caso de error
+        localStorage.removeItem("x-client-id");
+        localStorage.removeItem("client-info");
+        throw error;
+      }
     },
     onSuccess: (response) => {
+      // Verificar que tenemos los datos necesarios antes de redirigir
+      if (!response.client || !response.client.name) {
+        toast({
+          title: "Error",
+          description: "No se pudieron obtener los datos del cliente",
+          variant: "destructive",
+        });
+        return;
+      }
+
       queryClient.setQueryData(["/user"], response.client);
       toast({
         title: "Inicio de sesión exitoso",
@@ -109,29 +159,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     onError: (error: Error) => {
       toast({
         title: "Error de inicio de sesión",
-        description: "Email o contraseña incorrectos",
+        description: error.message || "Email o contraseña incorrectos",
         variant: "destructive",
       });
     },
   });
-
-  // Query separada para obtener los datos completos del cliente
-  const { data: clientData } = useQuery<ClientResponse>({
-    queryKey: ["/clients/me"],
-    queryFn: async () => {
-      const clientRes = await apiRequest("/clients/me");
-      return clientRes.json();
-    },
-    enabled: !!user, // Solo se ejecuta cuando hay un usuario logueado
-  });
-
-  // Actualizar los datos del cliente cuando se obtienen
-  React.useEffect(() => {
-    if (clientData) {
-      localStorage.setItem("client-info", JSON.stringify(clientData));
-      queryClient.setQueryData(["/user"], clientData);
-    }
-  }, [clientData, queryClient]);
 
   const registerMutation = useMutation<ClientResponse, Error, RegisterData>({
     mutationFn: async (data: RegisterData) => {

@@ -10,26 +10,32 @@ async function throwIfResNotOk(res: Response) {
 export async function apiRequest(
   method: string,
   url: string,
-  body?: any
+  body?: any,
+  extraHeaders?: Record<string, string>
 ): Promise<Response> {
   const headers = new Headers();
-  headers.append("Content-Type", "application/json");
-  headers.append("Accept", "application/json");
-  headers.append("Access-Control-Allow-Origin", "*");
-  headers.append("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization, x-client-id");
-
+  
   const clientId = localStorage.getItem("x-client-id");
   if (clientId) {
     headers.append("x-client-id", clientId);
   }
 
+  // Solo agregar Content-Type si hay body
+  if (body) {
+    headers.append("Content-Type", "application/json");
+  }
+
+  // Agregar headers adicionales si existen
+  if (extraHeaders) {
+    Object.entries(extraHeaders).forEach(([key, value]) => {
+      headers.append(key, value);
+    });
+  }
+
   const requestOptions = {
     method,
     headers,
-    body: body ? JSON.stringify(body) : undefined,
-    mode: "cors" as const,
-    credentials: "include" as const
+    body: body ? JSON.stringify(body) : undefined
   };
 
   console.log("Request:", {
@@ -63,8 +69,14 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
+    const headers = new Headers();
+    const clientId = localStorage.getItem("x-client-id");
+    if (clientId) {
+      headers.append("x-client-id", clientId);
+    }
+
     const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
+      headers
     });
 
     if (unauthorizedBehavior === "returnNull" && res.status === 401) {
