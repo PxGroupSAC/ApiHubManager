@@ -1,15 +1,20 @@
-import { getToken } from "./auth";
-
 export async function apiRequest(endpoint: string, options: RequestInit = {}) {
-  const token = getToken();
   const clientId = localStorage.getItem("x-client-id");
 
   const headers: HeadersInit = {
-    "Content-Type": "application/json",
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    ...(clientId ? { "x-client-id": clientId } : {}),
+    ...(options.body || options.method === 'POST' || options.method === 'PUT' 
+      ? { "Content-Type": "application/json" } 
+      : {}),
+    ...(clientId && endpoint !== '/login' ? { "x-client-id": clientId } : {}),
     ...options.headers,
   };
+
+  console.log('=== REQUEST DETAILS ===');
+  console.log('URL:', `http://127.0.0.1:8000${endpoint}`);
+  console.log('Method:', options.method || 'GET');
+  console.log('Headers:', headers);
+  console.log('Body:', options.body);
+  console.log('=====================');
 
   const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
     ...options,
