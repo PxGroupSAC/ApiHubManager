@@ -1,4 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { formatDate } from "@/lib/utils";
 
 interface ClientInfoCardProps {
   client: {
@@ -11,25 +12,6 @@ interface ClientInfoCardProps {
 }
 
 export default function ClientInfoCard({ client }: ClientInfoCardProps) {
-  const formatDate = (dateString: string) => {
-    if (!dateString) return 'No especificado';
-    
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return 'No especificado';
-      
-      return date.toLocaleDateString('es-ES', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-    } catch (e) {
-      return 'No especificado';
-    }
-  };
-
   const formatNumber = (num: number) => {
     if (isNaN(num)) return 'No especificado';
     return num.toLocaleString('es-ES');

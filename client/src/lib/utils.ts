@@ -5,12 +5,35 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatDate(date: Date): string {
-  return new Intl.DateTimeFormat('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(date)
+export function formatDate(isoDate: string) {
+  if (!isoDate) return 'No especificado';
+  
+  try {
+    const date = new Date(isoDate);
+    if (isNaN(date.getTime())) return 'No especificado';
+
+    // Ajustar manualmente a UTC-5 (restamos 5 horas)
+    const utcMinus5 = new Date(date.getTime() - (5 * 60 * 60 * 1000));
+
+    const options: Intl.DateTimeFormatOptions = {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    };
+
+    const formatted = new Intl.DateTimeFormat('es-PE', options).format(utcMinus5);
+    
+    // Limpiar el formato para hacerlo más consistente
+    return formatted
+      .replace(/,/g, '') // Remover comas
+      .replace(/\s+/g, ' ') // Remover espacios múltiples
+      .trim();
+  } catch (e) {
+    return 'No especificado';
+  }
 }
 
 export function formatDateTime(date: Date): string {
