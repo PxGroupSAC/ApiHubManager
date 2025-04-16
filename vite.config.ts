@@ -36,6 +36,8 @@ export default defineConfig({
   server: {
     proxy: {
       "/apis": "http://127.0.0.1:8000",
+      "/clients": "http://127.0.0.1:8000",
+      "/usage": "http://127.0.0.1:8000",
     },
   },
 });

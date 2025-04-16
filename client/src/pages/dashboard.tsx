@@ -21,26 +21,36 @@ export default function Dashboard() {
   
   const primaryApp = applications && applications.length > 0 ? applications[0] : null;
   
-  // Fetch API keys for the primary application
-  const { data: apiKeys, isLoading: isLoadingKeys } = useQuery({
-    queryKey: primaryApp ? [`/api/applications/${primaryApp.id}/api-keys`] : [],
-    queryFn: async () => {
-      const res = await fetch(`/api/applications/${primaryApp.id}/api-keys`);
-      if (!res.ok) throw new Error("Failed to fetch API keys");
-      return res.json();
-    },
-    enabled: !!primaryApp
-  });
-  
-  const primaryKey = apiKeys && apiKeys.length > 0 ? apiKeys[0].key : "";
-
   // Fetch client info (cliente autenticado)
-  const [client, setClient] = useState(null);
+  const [client, setClient] = useState<{ 
+    client_id: string; 
+    name: string; 
+    environment: string;
+    request_limit_per_day: number;
+    allowed_apis: string[];
+    created_at: string;
+    plan: string;
+  } | null>(null);
+  
   useEffect(() => {
-    apiRequest("GET", "/clients/me")
-      .then(res => res.json())
-      .then(setClient)
-      .catch(() => {});
+    // Obtener información del cliente desde localStorage
+    const clientId = localStorage.getItem("x-client-id");
+    const clientInfo = localStorage.getItem("client-info");
+    
+    if (clientId && clientInfo) {
+      const parsedClientInfo = JSON.parse(clientInfo);
+      console.log('Client Info from localStorage:', parsedClientInfo);
+      
+      setClient({
+        client_id: clientId,
+        name: parsedClientInfo.name,
+        environment: parsedClientInfo.environment || 'qa',
+        request_limit_per_day: parseInt(parsedClientInfo.request_limit_per_day) || 1000,
+        allowed_apis: parsedClientInfo.allowed_apis || [],
+        created_at: parsedClientInfo.created_at || new Date().toISOString(),
+        plan: parsedClientInfo.plan
+      });
+    }
   }, []);
 
   const handleReadDocs = () => {
@@ -68,11 +78,13 @@ export default function Dashboard() {
           <p className="text-sm text-muted-foreground">Service Overview</p>
         </div>
         <div className="text-sm text-right">
-          <div className="text-destructive">Cancelled Plan</div>
+          <div className={client?.plan === "Basic" ? "text-destructive" : "text-green-500"}>
+            {client?.plan || "No Plan"}
+          </div>
         </div>
       </div>
       
-      {isLoading || isLoadingKeys ? (
+      {isLoading ? (
         <div className="bg-background p-12 flex items-center justify-center">
           <p className="text-muted-foreground">Loading application details...</p>
         </div>
@@ -80,8 +92,8 @@ export default function Dashboard() {
         <CredentialsCard
           appName={primaryApp.name}
           appId={primaryApp.appId}
-          apiKey={primaryKey}
-          plan="Cancelled Plan"
+          apiKey={primaryApp.api_key}
+          plan={client?.plan || "No Plan"}
         />
       ) : (
         <div className="bg-background p-12 text-center">

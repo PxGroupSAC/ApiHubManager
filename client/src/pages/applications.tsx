@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
@@ -38,11 +38,14 @@ export default function Applications() {
   const { data: clientsData, isLoading: isLoadingClients } = useQuery({
     queryKey: ["clients"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "http://127.0.0.1:8000/clients/all");
+      const res = await apiRequest("GET", "/clients/all");
       return res.json();
     },
-    onSuccess: setClients,
   });
+  
+  useEffect(() => {
+    if (clientsData) setClients(clientsData);
+  }, [clientsData]);
   
   // Create application mutation
   const createMutation = useMutation({

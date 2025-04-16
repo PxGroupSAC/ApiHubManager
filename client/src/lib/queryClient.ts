@@ -10,28 +10,50 @@ async function throwIfResNotOk(res: Response) {
 export async function apiRequest(
   method: string,
   url: string,
-  data?: unknown
+  body?: any
 ): Promise<Response> {
-  // Si la url ya es absoluta (http...), no modificarla
-  // Si es relativa (ej: /apis), dejar que el proxy de Vite la maneje
-  // (Eliminamos el reemplazo anterior de /apis)
+  const headers = new Headers();
+  headers.append("Content-Type", "application/json");
+  headers.append("Accept", "application/json");
+  headers.append("Access-Control-Allow-Origin", "*");
+  headers.append("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  headers.append("Access-Control-Allow-Headers", "Content-Type, Authorization, x-client-id");
 
   const clientId = localStorage.getItem("x-client-id");
+  if (clientId) {
+    headers.append("x-client-id", clientId);
+  }
 
-  const headers: Record<string, string> = {
-    ...(data ? { "Content-Type": "application/json" } : {}),
-    ...(clientId ? { "x-client-id": clientId } : {}),
-  };
-
-  const res = await fetch(url, {
+  const requestOptions = {
     method,
     headers,
-    body: data ? JSON.stringify(data) : undefined,
-    credentials: "include",
+    body: body ? JSON.stringify(body) : undefined,
+    mode: "cors" as const,
+    credentials: "include" as const
+  };
+
+  console.log("Request:", {
+    method,
+    url: `http://127.0.0.1:8000${url}`,
+    headers: Object.fromEntries(headers.entries()),
+    body: body ? JSON.stringify(body) : undefined
   });
 
-  if (!res.ok) throw new Error(`${res.status}: ${res.statusText}`);
-  return res;
+  const response = await fetch(`http://127.0.0.1:8000${url}`, requestOptions);
+  
+  // Clonar la respuesta para poder leerla dos veces
+  const responseClone = response.clone();
+  try {
+    const text = await responseClone.text();
+    console.log("Response:", text);
+  } catch (error) {
+    console.error("Error reading response:", error);
+  }
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return response;
 }
 
 

@@ -126,22 +126,30 @@ export default function ApiServices() {
   const { data: apis = [] } = useQuery({
     queryKey: ["apis"],
     queryFn: async () => {
-      const res = await apiRequest("GET", "http://127.0.0.1:8000/apis");
+      const res = await apiRequest("GET", "/apis");
       const raw = await res.json();
       return (raw as any[]).map((api: any, i: number) => ({
         id: i,
-        applicationId: 0,
-        apiType: {
-          id: i,
-          name: api.name,
-          description: api.base_url,
-          methods: api.allowed_methods
-        },
-        apiKey: "",
-        isActive: api.enabled
+        name: api.name,
+        description: api.base_url,
+        methods: api.allowed_methods,
+        enabled: api.enabled,
       }));
     }
   });
+
+  // Activar API para el cliente
+  const handleActivateApi = async (apiName: string) => {
+    const clientId = localStorage.getItem("x-client-id");
+    if (!clientId) return toast({ title: "Error", description: "No hay client_id en localStorage", variant: "destructive" });
+    try {
+      const res = await apiRequest("POST", `/clients/${clientId}/apis/${apiName}/activate`);
+      const data = await res.json();
+      toast({ title: "API activada", description: `API Key: ${data.api_key}` });
+    } catch (e: any) {
+      toast({ title: "Error", description: e.message, variant: "destructive" });
+    }
+  };
 
   console.log("📦 APIs cargadas:", apis);
   
@@ -178,14 +186,24 @@ export default function ApiServices() {
         </div>
         {apis.length === 0 ? (
           <div className="text-muted-foreground italic">
-            No se encontraron APIs. Verifica que el backend responda correctamente a <code>/apis</code> y que hayas guardado la clave <code>x-admin-key</code> en <code>localStorage</code>.
+            No se encontraron APIs. Verifica que el backend responda correctamente a <code>/apis</code> y que hayas guardado la clave <code>x-client-id</code> en <code>localStorage</code>.
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {apis.map((api: any) => {
-              console.log("🔍 API desde backend:", api);
-              return <ApiServiceCard key={api.id} {...api} />;
-            })}
+            {apis.map((api: any) => (
+              <div key={api.id} className="bg-card rounded-lg shadow-sm border p-4 flex flex-col gap-2">
+                <div className="font-bold text-lg">{api.name}</div>
+                <div className="text-muted-foreground text-xs mb-2">{api.description}</div>
+                <div className="text-xs mb-2">Métodos: {api.methods.join(", ")}</div>
+                <button
+                  className="px-3 py-1 bg-primary text-white rounded text-xs mt-2"
+                  onClick={() => handleActivateApi(api.name)}
+                  disabled={!api.enabled}
+                >
+                  Activar API
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>

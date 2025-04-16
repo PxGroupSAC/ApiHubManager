@@ -19,12 +19,12 @@ export default function Statistics() {
   const [usage, setUsage] = useState([]);
 
   useEffect(() => {
-    apiRequest("GET", "http://127.0.0.1:8000/clients/all").then(res => res.json()).then(setClients);
+    apiRequest("GET", "/clients/all").then(res => res.json()).then(setClients);
   }, []);
 
   useEffect(() => {
     if (!filters.clientId) return;
-    apiRequest("GET", `http://127.0.0.1:8000/usage?client_id=${filters.clientId}`)
+    apiRequest("GET", `/usage?client_id=${filters.clientId}`)
       .then(res => res.json())
       .then(setUsage);
   }, [filters]);
@@ -40,8 +40,8 @@ export default function Statistics() {
 
       <StatsFilters onApplyFilters={setFilters} clients={clients} />
 
-      <StatsGraph data={usage} />
-      <StatsTable data={usage} />
+      <StatsGraph fromDate={filters.fromDate} toDate={filters.toDate} interval={filters.interval} />
+      <StatsTable fromDate={filters.fromDate} toDate={filters.toDate} />
     </div>
   );
 }
