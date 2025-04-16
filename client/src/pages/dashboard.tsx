@@ -77,11 +77,6 @@ export default function Dashboard() {
           <h1 className="text-2xl font-semibold">Dashboard</h1>
           <p className="text-sm text-muted-foreground">Service Overview</p>
         </div>
-        <div className="text-sm text-right">
-          <div className={client?.plan === "Basic" ? "text-destructive" : "text-green-500"}>
-            {client?.plan || "No Plan"}
-          </div>
-        </div>
       </div>
       
       {isLoading ? (

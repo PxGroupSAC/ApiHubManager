@@ -193,18 +193,43 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logoutMutation = useMutation<null, Error, void>({
     mutationFn: async () => {
-      localStorage.removeItem("access_token");
-      localStorage.removeItem("client-info");
-      localStorage.removeItem("x-client-id");
+      try {
+        // Primero llamar al endpoint de logout
+        await apiRequest("/logout", {
+          method: "POST"
+        });
+      } catch (error) {
+        console.error('Error en logout:', error);
+      } finally {
+        // Siempre limpiar el localStorage, incluso si falla el logout en el backend
+        localStorage.removeItem("access_token");
+        localStorage.removeItem("client-info");
+        localStorage.removeItem("x-client-id");
+      }
       return null;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["client"] });
+      // Limpiar la caché de queries
+      queryClient.clear();
+      // Invalidar específicamente la query del cliente
+      queryClient.invalidateQueries({ queryKey: ["/user"] });
+      queryClient.invalidateQueries({ queryKey: ["/clients/me"] });
+      
       toast({
         title: "Sesión cerrada",
         description: "Has cerrado sesión exitosamente",
       });
+      
+      // Redirigir al login
+      window.location.href = "/auth";
     },
+    onError: (error) => {
+      toast({
+        title: "Error al cerrar sesión",
+        description: error.message || "No se pudo cerrar la sesión correctamente",
+        variant: "destructive",
+      });
+    }
   });
 
   return (
